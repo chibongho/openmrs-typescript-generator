@@ -1,12 +1,7 @@
-/// <reference path="./custom.d.ts" />
 // tslint:disable
 {{>licenseInfo}}
 
-import * as url from "url";
-import * as portableFetch from "portable-fetch";
-import { Configuration } from "./configuration";
-
-const test = "hello"
+const test = "hello world"
 const BASE_PATH = "{{{basePath}}}".replace(/\/+$/, "");
 
 /**
@@ -45,13 +40,8 @@ export interface FetchArgs {
  * @class BaseAPI
  */
 export class BaseAPI {
-    protected configuration?: Configuration;
 
-    constructor(configuration?: Configuration, protected basePath: string = BASE_PATH, protected fetch: FetchAPI = portableFetch) {
-        if (configuration) {
-            this.configuration = configuration;
-            this.basePath = configuration.basePath || this.basePath;
-        }
+    constructor(protected basePath: string = BASE_PATH, protected fetch: FetchAPI = portableFetch) {
     }
 }
 
@@ -77,7 +67,7 @@ export class RequiredError extends Error {
  * {{&description}}{{/description}}
  * @export
  */
-export const {{classname}}FetchParamCreator = function (configuration?: Configuration) {
+export const {{classname}}FetchParamCreator = function (basePath: string = BASE_PATH) {
     return {
     {{#operation}}
         /**
@@ -100,58 +90,21 @@ export const {{classname}}FetchParamCreator = function (configuration?: Configur
             }
     {{/required}}
     {{/allParams}}
-            const localVarPath = `{{{path}}}`{{#pathParams}}
-                .replace(`{${"{{baseName}}"}}`, encodeURIComponent(String({{paramName}}))){{/pathParams}};
-            const localVarUrlObj = url.parse(localVarPath, true);
+            const url = new URL(`${basePath}/{{{path}}}`{{#pathParams}}
+                .replace(`{${"{{baseName}}"}}`, encodeURIComponent(String({{paramName}}))){{/pathParams}});
+            
             const localVarRequestOptions = Object.assign({ method: '{{httpMethod}}' }, options);
             const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
+            
     {{#hasFormParams}}
             const localVarFormParams = new URLSearchParams();
     {{/hasFormParams}}
 
-    {{#authMethods}}
-            // authentication {{name}} required
-            {{#isApiKey}}
-            {{#isKeyInHeader}}
-            if (configuration && configuration.apiKey) {
-                const localVarApiKeyValue = typeof configuration.apiKey === 'function'
-					? configuration.apiKey("{{keyParamName}}")
-					: configuration.apiKey;
-                localVarHeaderParameter["{{keyParamName}}"] = localVarApiKeyValue;
-            }
-            {{/isKeyInHeader}}
-            {{#isKeyInQuery}}
-            if (configuration && configuration.apiKey) {
-                const localVarApiKeyValue = typeof configuration.apiKey === 'function'
-					? configuration.apiKey("{{keyParamName}}")
-					: configuration.apiKey;
-                localVarQueryParameter["{{keyParamName}}"] = localVarApiKeyValue;
-            }
-            {{/isKeyInQuery}}
-            {{/isApiKey}}
-            {{#isBasic}}
-            // http basic authentication required
-            if (configuration && (configuration.username || configuration.password)) {
-                localVarHeaderParameter["Authorization"] = "Basic " + btoa(configuration.username + ":" + configuration.password);
-            }
-            {{/isBasic}}
-            {{#isOAuth}}
-            // oauth required
-            if (configuration && configuration.accessToken) {
-				const localVarAccessTokenValue = typeof configuration.accessToken === 'function'
-					? configuration.accessToken("{{name}}", [{{#scopes}}"{{{scope}}}"{{^-last}}, {{/-last}}{{/scopes}}])
-					: configuration.accessToken;
-                localVarHeaderParameter["Authorization"] = "Bearer " + localVarAccessTokenValue;
-            }
-            {{/isOAuth}}
-
-    {{/authMethods}}
     {{#queryParams}}
             {{#isListContainer}}
             if ({{paramName}}) {
             {{#isCollectionFormatMulti}}
-                localVarQueryParameter['{{baseName}}'] = {{paramName}};
+                url.searchParams.append('{{baseName}}', {{paramName}}); // yoo yoo
             {{/isCollectionFormatMulti}}
             {{^isCollectionFormatMulti}}
                 localVarQueryParameter['{{baseName}}'] = {{paramName}}.join(COLLECTION_FORMATS["{{collectionFormat}}"]);
@@ -160,60 +113,11 @@ export const {{classname}}FetchParamCreator = function (configuration?: Configur
             {{/isListContainer}}
             {{^isListContainer}}
             if ({{paramName}} !== undefined) {
-                {{#isDateTime}}
-                localVarQueryParameter['{{baseName}}'] = ({{paramName}} as any).toISOString();
-                {{/isDateTime}}
-                {{^isDateTime}}
-                {{#isDate}}
-                localVarQueryParameter['{{baseName}}'] = ({{paramName}} as any instanceof Date) ?
-                    ({{paramName}} as any).toISOString().substr(0,10) :
-                    {{paramName}};
-                {{/isDate}}
-                {{^isDate}}
-                localVarQueryParameter['{{baseName}}'] = {{paramName}};
-                {{/isDate}}
-                {{/isDateTime}}
+                url.searchParams.append('{{baseName}}', String({{paramName}})); // yo yo yo
             }
             {{/isListContainer}}
 
     {{/queryParams}}
-    {{#headerParams}}
-            {{#isListContainer}}
-            if ({{paramName}}) {
-                localVarHeaderParameter['{{baseName}}'] = {{paramName}}.join(COLLECTION_FORMATS["{{collectionFormat}}"]));
-            }
-            {{/isListContainer}}
-            {{^isListContainer}}
-            if ({{paramName}} !== undefined && {{paramName}} !== null) {
-                localVarHeaderParameter['{{baseName}}'] = String({{paramName}});
-            }
-            {{/isListContainer}}
-
-    {{/headerParams}}
-    {{#formParams}}
-            {{#isListContainer}}
-            if ({{paramName}}) {
-            {{#isCollectionFormatMulti}}
-                {{paramName}}.forEach((element) => {
-                    localVarFormParams.append('{{baseName}}', element as any);
-                })
-            {{/isCollectionFormatMulti}}
-            {{^isCollectionFormatMulti}}
-                    localVarFormParams.set('{{baseName}}', {{paramName}}.join(COLLECTION_FORMATS["{{collectionFormat}}"]));
-            {{/isCollectionFormatMulti}}
-            }
-            {{/isListContainer}}
-            {{^isListContainer}}
-            if ({{paramName}} !== undefined) {
-                localVarFormParams.set('{{baseName}}', {{paramName}} as any);
-            }
-            {{/isListContainer}}
-
-    {{/formParams}}
-    {{#hasFormParams}}
-            localVarHeaderParameter['Content-Type'] = 'application/x-www-form-urlencoded';
-
-    {{/hasFormParams}}
     {{#bodyParam}}
             {{^consumes}}
             localVarHeaderParameter['Content-Type'] = 'application/json';
@@ -223,12 +127,12 @@ export const {{classname}}FetchParamCreator = function (configuration?: Configur
             {{/consumes.0}}
 
     {{/bodyParam}}
-            localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
+            // localVarUrlObj.query = Object.assign({}, localVarUrlObj.query, localVarQueryParameter, options.query);
             // fix override query string Detail: https://stackoverflow.com/a/7517673/1077943
-            localVarUrlObj.search = null;
-            localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
+            // localVarUrlObj.search = null;
+            // localVarRequestOptions.headers = Object.assign({}, localVarHeaderParameter, options.headers);
     {{#hasFormParams}}
-            localVarRequestOptions.body = localVarFormParams.toString();
+            // localVarRequestOptions.body = localVarFormParams.toString();
     {{/hasFormParams}}
     {{#bodyParam}}
             const needsSerialization = (<any>"{{dataType}}" !== "string") || localVarRequestOptions.headers['Content-Type'] === 'application/json';
@@ -236,7 +140,7 @@ export const {{classname}}FetchParamCreator = function (configuration?: Configur
     {{/bodyParam}}
 
             return {
-                url: url.format(localVarUrlObj),
+                url: url.toString(),
                 options: localVarRequestOptions,
             };
         },
@@ -249,7 +153,7 @@ export const {{classname}}FetchParamCreator = function (configuration?: Configur
  * {{{description}}}{{/description}}
  * @export
  */
-export const {{classname}}Fp = function(configuration?: Configuration) {
+export const {{classname}}Fp = function(basePath?: string) {
     return {
     {{#operation}}
         /**
@@ -263,10 +167,10 @@ export const {{classname}}Fp = function(configuration?: Configuration) {
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        {{nickname}}({{#allParams}}{{paramName}}{{^required}}?{{/required}}: {{{dataType}}}, {{/allParams}}options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<{{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}Response{{/returnType}}> {
-            const localVarFetchArgs = {{classname}}FetchParamCreator(configuration).{{nickname}}({{#allParams}}{{paramName}}, {{/allParams}}options);
-            return (fetch: FetchAPI = portableFetch, basePath: string = BASE_PATH) => {
-                return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
+        {{nickname}}({{#allParams}}{{paramName}}{{^required}}?{{/required}}: {{{dataType}}}, {{/allParams}}options?: any): (fetch?: FetchAPI) => Promise<{{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}Response{{/returnType}}> {
+            const localVarFetchArgs = {{classname}}FetchParamCreator(basePath).{{nickname}}({{#allParams}}{{paramName}}, {{/allParams}}options);
+            return (fetch: FetchAPI = portableFetch) => {
+                return fetch(localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
                         return response{{#returnType}}.json(){{/returnType}};
                     } else {
@@ -284,7 +188,7 @@ export const {{classname}}Fp = function(configuration?: Configuration) {
  * {{&description}}{{/description}}
  * @export
  */
-export const {{classname}}Factory = function (configuration?: Configuration, fetch?: FetchAPI, basePath?: string) {
+export const {{classname}}Factory = function (fetch?: FetchAPI, basePath?: string) {
     return {
     {{#operation}}
         /**
@@ -299,7 +203,7 @@ export const {{classname}}Factory = function (configuration?: Configuration, fet
          * @throws {RequiredError}
          */
         {{nickname}}({{#allParams}}{{paramName}}{{^required}}?{{/required}}: {{{dataType}}}, {{/allParams}}options?: any) {
-            return {{classname}}Fp(configuration).{{nickname}}({{#allParams}}{{paramName}}, {{/allParams}}options)(fetch, basePath);
+            return {{classname}}Fp(basePath).{{nickname}}({{#allParams}}{{paramName}}, {{/allParams}}options)(fetch);
         },
     {{/operation}}
     };
@@ -359,9 +263,64 @@ export class {{classname}} extends BaseAPI {
      * @memberof {{classname}}
      */
     public {{nickname}}({{#allParams}}{{paramName}}{{^required}}?{{/required}}: {{{dataType}}}, {{/allParams}}options?: any) {
-        return {{classname}}Fp(this.configuration).{{nickname}}({{#allParams}}{{paramName}}, {{/allParams}}options)(this.fetch, this.basePath);
+        return {{classname}}Fp(this.basePath).{{nickname}}({{#allParams}}{{paramName}}, {{/allParams}}options)(this.fetch);
     }
 
     {{/operation}}
 }
 {{/operations}}{{/apis}}{{/apiInfo}}
+
+type ActionEnum = any;
+type AttachmentCreate = any;
+type AttachmentUpdate = any;
+type CareSettingTypeEnum = any;
+type CertaintyEnum = any;
+type CohortmCohortCreate = any;
+type CohortmCohortUpdate = any;
+type CohortmCohortmemberCreate = any;
+type CohortmCohortmemberUpdate = any;
+type CohortmCohorttypeCreate = any;
+type CohortmCohorttypeUpdate = any;
+type ConceptNameTypeEnum = any;
+type ConceptproposalCreate = any;
+type ConceptproposalUpdate = any;
+type ConceptreferencetermUpdate = any;
+type ConceptreferencetermmapUpdate = any;
+type FieldUpdate = any;
+type FieldtypeUpdate = any;
+type FormFormfieldUpdate = any;
+type FulfillerStatusEnum = any;
+type GenderEnum = any;
+type InterpretationEnum = any;
+type LocationBehaviorEnum = any;
+type MetadatamappingMetadatasetMembersCreate = any;
+type MetadatamappingMetadatasetMembersUpdate = any;
+type ObsUpdate = any;
+type OpenconceptlabImportCreate = any;
+type OpenconceptlabImportactionCreate = any;
+type OpenconceptlabSubscriptionCreate = any;
+type OpenconceptlabSubscriptionUpdate = any;
+type OperatorEnum = any;
+type OrdertemplatesOrderTemplateCreate = any;
+type OrdertemplatesOrderTemplateUpdate = any;
+type PatientflagsPatientflagCreate = any;
+type ProgramUpdate = any;
+type QueueCreate = any;
+type QueueEntryCreate = any;
+type QueueEntryUpdate = any;
+type QueueRoomCreate = any;
+type QueueRoomProviderCreate = any;
+type QueueRoomProviderUpdate = any;
+type QueueRoomUpdate = any;
+type QueueUpdate = any;
+type RelationshiptypeUpdate = any;
+type RunStatusEnum = any;
+type StatusEnum = any;
+type UrgencyEnum = any;
+type WorkflowCreateRef = any;
+type WorkflowStateCreate = any;
+type WorkflowStateCreateRef = any;
+type WorkflowStateUpdate = any;
+
+const portableFetch = fetch;
+
