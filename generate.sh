@@ -4,4 +4,5 @@ java -jar swagger-codegen-cli-2.2.1.jar generate \
 --git-repo-id openmrs-typescript-generator \
 --git-user-id openmrs \
 -l typescript-fetch \
+-t templates \
 -o output
