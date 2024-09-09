@@ -25,7 +25,15 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <dependency>
+        <groupId>com.konghq</groupId>
+        <artifactId>unirest-java-bom</artifactId>
+        <version>4.3.0</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
     </dependencies>
+    
   </dependencyManagement>
 
   <dependencies>
@@ -39,6 +47,14 @@
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-params</artifactId>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.konghq</groupId>
+      <artifactId>unirest-java-core</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>com.konghq</groupId>
+        <artifactId>unirest-modules-gson</artifactId>
     </dependency>
   </dependencies>
 
